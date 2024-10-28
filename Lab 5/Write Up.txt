@@ -1,0 +1,20 @@
+This Python script is designed to detect dice in an image, draw bounding boxes
+around them, and count the number of dots (pips) on each dice face using OpenCV.
+The process starts with loading the image and converting it to the HSV color space
+to better isolate the yellow color of the dice. A color mask is then applied based
+on a predefined range for yellow, which allows the program to focus solely on the
+dice, excluding other elements in the image. Once the mask is applied, the program
+identifies the contours of the masked regions, which represent the dice, and
+filters out smaller, irrelevant contours.
+For each detected dice, the code calculates a rotated bounding box around it using
+OpenCV's minAreaRect function. This ensures that even tilted or rotated dice are
+properly enclosed. Next, the program proceeds to detect the dots (pips) within each
+dice's bounding box. The region inside the bounding box is converted to grayscale,
+blurred, and thresholded to make the black dots more distinguishable. Using the
+Hough Circle Transform, the code detects the circular dots, counts them, and
+outputs the pip count for each die.
+Finally, the program displays the processed image with bounding boxes around the
+dice and circles around the pips. The results are also printed in the console, and
+the processed images are saved for further review. To ensure proper visualization,
+the display window size is adjusted to fit the image appropriately when it is
+shown.
