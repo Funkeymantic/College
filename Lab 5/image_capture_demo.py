@@ -5,7 +5,7 @@ import cv2 as cv
 
 def open_camera(device_manager):
     # Scan the network to find our device
-    num_dev, dev_info_list = device_manager.update_device_list()
+    num_dev, dev_info_list = device_manager.update_all_device_list()
 
     # Check if a device was found
     if num_dev == 0:
