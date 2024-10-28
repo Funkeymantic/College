@@ -1,7 +1,11 @@
 import gxipy as gx
 from PIL import Image
 import cv2 as cv
+import os
 
+current_dir = os.getcwd()
+print(current_dir)
+# os.chdir('/home/funkey/ME-559/College/Lab 5')
 
 def open_camera(device_manager):
     # Scan the network to find our device
@@ -91,13 +95,14 @@ if camera is None:
 camera.stream_on()
 
 # Capture and save image
+os.chdir('/home/funkey/ME-559/College/Lab 5')
 filename = 'dice.png'
 capture_image(camera, filename)
 
 # Open saved image with OpenCV
 image = cv.imread(filename)
-cv.namedWindow('Captured Dice Image', cv.WINDOW_NORMAL)
-cv.imshow('Captured Dice Image', image)
+# cv.namedWindow('Captured Dice Image', cv.WINDOW_NORMAL)
+# cv.imshow('Captured Dice Image', image)
 cv.waitKey(0)
 
 # End image acquisition and close device

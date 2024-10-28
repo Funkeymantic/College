@@ -1,5 +1,8 @@
 import cv2 as cv
 import numpy as np
+import os
+
+os.chdir('/home/funkey/ME-559/College/Lab 5')
 
 # Load the image
 image = cv.imread('dice.png')
@@ -58,7 +61,7 @@ for contour in contours:
         # Display the pip count for each die
         print(f"Pip count for dice: {pip_count}")
 # Save the image with rotated bounding boxes and dots
-cv.imwrite('Lab 5\dice.png', image)
+cv.imwrite('Dice_Filter.png', image)
 
 # Display the result (optional)
 cv.namedWindow('Dice Detection', cv.WINDOW_NORMAL) # Create a resizable window
