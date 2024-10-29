@@ -5,15 +5,23 @@ from PIL import Image
 import os
 from fpdf import FPDF
 import json
+# import subprocess
+
+# # Change to the directory
+# subprocess.run(["cd", "Galaxy_Camera_SDK/Galaxy_camera/bin"], shell=True)
+
+# # Execute the GalaxyView command
+# subprocess.run(["./GalaxyView"], shell=True)
 
 
 '''
 Capture Image
 '''
 
+os.chdir('/home/funkey/ME-559/College')
 current_dir = os.getcwd()
 print(current_dir)
-# os.chdir('/home/funkey/ME-559/College/Lab 5')
+
 
 def open_camera(device_manager):
     # Scan the network to find our device
@@ -178,8 +186,8 @@ cropped_image = image[1100:3000, 0:4000]
 hsv = cv.cvtColor(warped_image, cv.COLOR_BGR2HSV)
 
 # Define yellow color range
-lower_yellow = np.array([20, 100, 150])
-upper_yellow = np.array([30, 255, 255])
+lower_yellow = np.array([28, 255, 150])
+upper_yellow = np.array([50, 255, 255])
 yellow_mask = cv.inRange(hsv, lower_yellow, upper_yellow)
 
 # Detect dice contours
@@ -235,6 +243,40 @@ for contour in contours:
             "pips": num_pips,
             "rotation": angle
         })
+    if area > 50000:
+        rect = cv.minAreaRect(contour)
+        box = cv.boxPoints(rect)
+        box = np.int32(box)
+        cv.drawContours(warped_image, [box], 0, (0, 255, 0), 2)
+
+        # Center and rotation of the dice
+        center_x, center_y = np.mean(box, axis=0).astype(int)
+        angle = rect[2]
+
+        # Detect pips using Hough Circles
+        roi_image = warped_image[min(box[:, 1]):max(box[:, 1]), min(box[:, 0]):max(box[:, 0])]
+        gray_roi = cv.cvtColor(roi_image, cv.COLOR_BGR2GRAY)
+        blurred_roi = cv.GaussianBlur(gray_roi, (9, 9), 1)
+        
+        # Adjusted adaptive thresholding to improve pip detection
+        thresh = cv.adaptiveThreshold(blurred_roi, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2)
+        
+        cnt = contours[0]
+
+        hull = cv.convexHull(cnt, returnPoints = False)
+        # Assume `contour` and `hull` are defined contours and convex hulls
+        defects = cv.convexityDefects(contour, hull)
+
+        # Check if defects is None before proceeding
+        if defects is not None:
+            for i in range(defects.shape[0]):
+                # Process each defect
+                start_index, end_index, farthest_point_index, distance = defects[i, 0]
+                start_point = tuple(contour[start_index][0])
+                end_point = tuple(contour[end_index][0])
+                farthest_point = tuple(contour[farthest_point_index][0])
+            cv.line(cropped_image,start_point,end_point,[0,255,0],2)
+            cv.circle(cropped_image,farthest_point,5,[0,0,255],-1)
 
 # Sort dice data by number of pips
 dice_data.sort(key=lambda x: x["pips"])
