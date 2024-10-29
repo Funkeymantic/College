@@ -1,16 +1,23 @@
 import cv2 as cv
 import numpy as np
-import os
 import gxipy as gx
 from PIL import Image
+import os
+from fpdf import FPDF
+import json
+
 
 '''
-Capture image
+Capture Image
 '''
+
+current_dir = os.getcwd()
+print(current_dir)
+# os.chdir('/home/funkey/ME-559/College/Lab 5')
 
 def open_camera(device_manager):
     # Scan the network to find our device
-    num_dev, dev_info_list = device_manager.update_device_list()
+    num_dev, dev_info_list = device_manager.update_all_device_list()
 
     # Check if a device was found
     if num_dev == 0:
@@ -38,6 +45,7 @@ def open_camera(device_manager):
 
     return camera
 
+    
 def capture_image(camera, filename):
     # Image improvement parameters
     if camera.GammaParam.is_readable():
@@ -58,10 +66,13 @@ def capture_image(camera, filename):
         color_correction = 0
 
     # Get the current image
-    raw_image = camera.data_stream[0].get_image(timeout=2000)
+    print("Attempting to capture image...")
+    raw_image = camera.data_stream[0].get_image(timeout=5000)
     if raw_image is None:
-        print('Timeout: Failed to get image.')
+        print("Timeout: Failed to get image.")
         exit(1)
+    print("Image captured successfully.")
+
 
     # Convert image to RGB 
     rgb_image = raw_image.convert('RGB')
@@ -82,6 +93,7 @@ def capture_image(camera, filename):
     image = Image.fromarray(numpy_image, 'RGB')
     image.save(filename)
 
+
 # Find compatible devices on the network
 device_manager = gx.DeviceManager()
 camera = open_camera(device_manager)
@@ -94,80 +106,255 @@ if camera is None:
 camera.stream_on()
 
 # Capture and save image
+os.chdir('/home/funkey/ME-559/College/Lab 5')
 filename = 'dice.png'
 capture_image(camera, filename)
 
+# Open saved image with OpenCV
+image = cv.imread(filename)
+# cv.namedWindow('Captured Dice Image', cv.WINDOW_NORMAL)
+# cv.imshow('Captured Dice Image', image)
+cv.waitKey(0)
+
+# End image acquisition and close device
+camera.stream_off()
+camera.close_device()
+
 '''
-Modify code start
+Modify Image
 '''
 
-os.chdir('./Lab 5')
+# Calibration points for robot and pixel coordinates (setup phase)
+robot_coords = [
+    [165.897, 400.657], [176.419, 694.628], [168.355, 1052.786],
+    [486.306, 399.412], [473.538, 703.095], [473.25, 1047.543],
+    [754.817, 397.818], [761.057, 724.025], [761.057, 935.786]
+]
+pixel_coords = [
+    (94, 232), (787, 257), (1654, 232), 
+    (96, 1002), (807, 965), (1631, 965), 
+    (97, 1623), (859, 1633), (1383, 1647)
+]
 
-# Load the image
+# Compute transformation matrix
+pixel_coords_np = np.array(pixel_coords, dtype="float32")
+robot_coords_np = np.array(robot_coords, dtype="float32")
+transformation_matrix, _ = cv.findHomography(pixel_coords_np, robot_coords_np)
+
+def transform_pixel_to_robot(pixel_position):
+    px, py = pixel_position
+    transformed_point = cv.perspectiveTransform(np.array([[[px, py]]], dtype="float32"), transformation_matrix)
+    return transformed_point[0][0]
+
+# Load and process the image
 image = cv.imread('dice.png')
 
-# Crop Original Image
-cropped_image = image[1100:3000,75:3750]
+# Define the four points on the original image you want to warp from
+# (top-left, top-right, bottom-right, bottom-left)
+src_points = np.float32([
+    [0, 1090],  # Top-left corner
+    [3950, 1100],  # Top-right corner
+    [3950, 3050],  # Bottom-right corner
+    [50, 2850]   # Bottom-left corner
+])
 
-# Convert to HSV
-hsv = cv.cvtColor(cropped_image, cv.COLOR_BGR2HSV)
+# Define the points in the output image you want to warp to
+# For example, this could be a rectangle of width and height matching your intended output
+width, height = 3800, 1750  # Adjust these values as needed
+dst_points = np.float32([
+    [0, 0],           # Top-left corner
+    [width, 0],       # Top-right corner
+    [width, height],  # Bottom-right corner
+    [0, height]       # Bottom-left corner
+])
 
-# Define yellow color range and mask it
-lower_yellow = np.array([20, 100, 190])
+# Calculate the perspective transformation matrix
+matrix = cv.getPerspectiveTransform(src_points, dst_points)
+
+# Perform the perspective warp
+warped_image = cv.warpPerspective(image, matrix, (width, height))
+
+cropped_image = image[1100:3000, 0:4000]
+hsv = cv.cvtColor(warped_image, cv.COLOR_BGR2HSV)
+
+# Define yellow color range
+lower_yellow = np.array([20, 100, 150])
 upper_yellow = np.array([30, 255, 255])
 yellow_mask = cv.inRange(hsv, lower_yellow, upper_yellow)
 
-# Find contours of the yellow regions (the dice)
-contours, _ = cv.findContours(yellow_mask, cv.RETR_EXTERNAL,cv.CHAIN_APPROX_SIMPLE)
+# Detect dice contours
+contours, _ = cv.findContours(yellow_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+dice_data = []
+cv.imwrite('Check.png', yellow_mask)
 
-# Filter based on the size of the contour (to avoid noise)
-min_dice_area = 10000 # Adjust this based on the dice size in your image
-max_dice_area = 1000000 # Adjusted maximum area for a dice
-
-# Draw bounding boxes around the dice and detect dots inside each box
 for contour in contours:
     area = cv.contourArea(contour)
-
-    # Apply contour area filtering
-    if min_dice_area < area < max_dice_area:
-        # Use minAreaRect to get the rotated bounding box
+    if 10000 < area < 50000:
         rect = cv.minAreaRect(contour)
-        box = cv.boxPoints(rect) # Get box corners
-        box = np.int32(box) # Convert to integer
-        cv.drawContours(image, [box], 0, (0, 255, 0), 2) # Draw the green bounding box
+        box = cv.boxPoints(rect)
+        box = np.int32(box)
+        cv.drawContours(warped_image, [box], 0, (0, 255, 0), 2)
 
-        # Create a region of interest (ROI) to detect dots inside the dice
-        roi_mask = yellow_mask[min(box[:, 1]):max(box[:, 1]), min(box[:,0]):max(box[:, 0])]
-        roi_image = image[min(box[:, 1]):max(box[:, 1]), min(box[:, 0]):max(box[:,0])]
-        
-        # Convert the ROI to grayscale
+        # Center and rotation of the dice
+        center_x, center_y = np.mean(box, axis=0).astype(int)
+        angle = rect[2]
+
+        # Detect pips using Hough Circles
+        roi_image = warped_image[min(box[:, 1]):max(box[:, 1]), min(box[:, 0]):max(box[:, 0])]
         gray_roi = cv.cvtColor(roi_image, cv.COLOR_BGR2GRAY)
-        blurred_roi = cv.GaussianBlur(gray_roi, (5, 5), 2) # Adjusted blur to (5,5)
+        blurred_roi = cv.GaussianBlur(gray_roi, (9, 9), 1)
         
-        # Try adaptive thresholding for better dot detection
-        thresh = cv.adaptiveThreshold(blurred_roi, 255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY_INV, 11, 3)
+        # Adjusted adaptive thresholding to improve pip detection
+        thresh = cv.adaptiveThreshold(blurred_roi, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2)
         
-        # Detect circles (dots) in the gray ROI with adjusted parameters
-        circles = cv.HoughCircles(blurred_roi, cv.HOUGH_GRADIENT, dp=1.2,minDist=15,param1=50, param2=20, minRadius=39,maxRadius=50) # Adjusted HoughCircles params
-        
-        # Initialize pip count
-        pip_count = 0
+        # Updated HoughCircles parameters for better pip detection
+        circles = cv.HoughCircles(
+            blurred_roi, 
+            cv.HOUGH_GRADIENT, 
+            dp=1.2, 
+            minDist=25,           # Increased to reduce close false positives
+            param1=50,            # Edge detection threshold
+            param2=33,            # Accumulator threshold for circle detection
+            minRadius=9,         # Adjusted for pip size
+            maxRadius=25
+        )
 
+        # Count pips, filtered for circle properties
+        num_pips = len(circles[0]) if circles is not None else 0
         if circles is not None:
-            circles = np.round(circles[0, :]).astype("int")
-            pip_count = len(circles) # Count the number of detected circles (pips)
-            
-            for (cx, cy, r) in circles:
-                # Draw the blue circle in the original image, adjusting for ROI offset
-                cv.circle(image, (min(box[:, 0]) + cx, min(box[:, 1]) + cy), r,(255, 0, 0), 2)
-        # Display the pip count for each die
-        print(f"Pip count for dice: {pip_count}")
-# Save the image with rotated bounding boxes and dots
-cv.imwrite('Dice_Filter.png', yellow_mask)
+            for (cx, cy, r) in np.round(circles[0, :]).astype("int"):
+                if 10 <= r <= 25:  # Ensure radius is within expected range
+                    cv.circle(warped_image, (min(box[:, 0]) + cx, min(box[:, 1]) + cy), r, (0, 255, 0), 2)
 
-# Display the result (optional)
-# cv.namedWindow('Dice Detection', cv.WINDOW_NORMAL) # Create a resizable window
-# cv.resizeWindow('Dice Detection', 1512, 2016) # Set the window size (width,height)
-# cv.imshow('Dice Detection', image) # Display the image in the resized window
+        # Convert dice center from pixels to robot coordinates
+        robot_position = transform_pixel_to_robot((center_x, center_y))
+
+        dice_data.append({
+            "pixel_center": (center_x, center_y),
+            "robot_position": robot_position,
+            "pips": num_pips,
+            "rotation": angle
+        })
+
+# Sort dice data by number of pips
+dice_data.sort(key=lambda x: x["pips"])
+dice = 1
+
+# Define the text offset
+text_offset_x = -90  # Adjust as needed
+text_offset_y = 40  # Adjust as needed
+
+# Display results with offset text
+for die in dice_data:
+    print(f"Die with {die['pips']} pips at pixel position {die['pixel_center']}, "
+          f"robot position {die['robot_position']} with rotation {die['rotation']} degrees.")
+    cv.circle(warped_image, die["pixel_center"], 5, (0, 255, 0), -1)
+    # Apply offset to text position
+    text_position = (die["pixel_center"][0] + text_offset_x, die["pixel_center"][1] + text_offset_y)
+    cv.putText(warped_image, f"Pips: {die['pips']}", text_position, cv.FONT_HERSHEY_SIMPLEX, 1.5, (255, 0, 255), 2)
+    cv.putText(warped_image, f"Pos: {dice}", (text_position[0], text_position[1] + 40), cv.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 2)
+    dice += 1
+
+# Define the file name to save the JSON output
+output_file = "dice_positions.json"
+
+# Prepare the data list for JSON format, ensuring int conversion
+data_list = []
+for i, die in enumerate(dice_data, start=1):
+    data_entry = {
+        "Dice": i,
+        "pips": int(die['pips']),
+        "pixel_center": {"x": int(die['pixel_center'][0]), "y": int(die['pixel_center'][1])},
+        "robot_position": {"x": float(die['robot_position'][0]), "y": float(die['robot_position'][1])},
+        "rotation": float(die['rotation'])
+    }
+    data_list.append(data_entry)
+
+# Save the list to a JSON file
+with open(output_file, "w") as f:
+    json.dump(data_list, f, indent=4)
+
+print(f"Dice data has been saved to {output_file}")
+
+# # Save the dice data to a text file
+# with open(output_file, "w") as f:
+#     f.write("[\n")  # Start the array
+#     for i, die in enumerate(dice_data, start=1):
+#         # Structure each entry as {dice number: [pips, [robot x, robot y], rotation]}
+#         f.write(f"  {{'Dice_Robot {i}': [{die['pips']}, [{die['robot_position'][0]:.2f}, {die['robot_position'][1]:.2f}], {die['rotation']:.2f}]}}\n")
+#         f.write(f"  {{'Dice_Pixel {i}': [{die['pips']}, [{die['pixel_center'][0]:.2f}, {die['pixel_center'][1]:.2f}], {die['rotation']:.2f}]}}\n")
+#         print(f"Dice {i}")
+#     f.write("]\n")  # Close the array
+
+# print(f"Dice data has been saved to {output_file}")
+
+# Load dice data from JSON file
+with open(output_file, "r") as f:
+    dice_data = json.load(f)
+
+def create_pdf_report(dice_data, images):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # Title Page
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(200, 10, "Dice Detection Report", ln=True, align="C")
+    pdf.ln(10)
+
+    # Dice Data Table
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(200, 10, "Dice Data Summary", ln=True, align="L")
+    pdf.set_font("Arial", "", 10)
+    pdf.ln(5)
+    
+    # Table headers
+    pdf.cell(20, 10, "Dice#", 1)
+    pdf.cell(20, 10, "Pips", 1)
+    pdf.cell(50, 10, "Pixel Position", 1)
+    pdf.cell(50, 10, "Robot Position", 1)
+    pdf.cell(20, 10, "Rotation", 1)
+    pdf.ln()
+
+    # Dice data rows
+    for die in dice_data:
+        pdf.cell(20, 10, str(die["Dice"]), 1)
+        pdf.cell(20, 10, str(die["pips"]), 1)
+        pixel_pos = f"({die['pixel_center']['x']}, {die['pixel_center']['y']})"
+        robot_pos = f"({die['robot_position']['x']:.2f}, {die['robot_position']['y']:.2f})"
+        pdf.cell(50, 10, pixel_pos, 1)
+        pdf.cell(50, 10, robot_pos, 1)
+        pdf.cell(20, 10, f"{die['rotation']:.2f}", 1)
+        pdf.ln()
+    
+    # Annotated Images Section
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(200, 10, "Annotated Images", ln=True, align="L")
+    pdf.ln(10)
+
+    # Insert images
+    for img in images:
+        pdf.image(img, x=10, w=180)
+        pdf.ln(10)
+
+    # Save the PDF
+    pdf_output_path = "Dice_Report.pdf"
+    pdf.output(pdf_output_path)
+    print(f"PDF report created: {pdf_output_path}")
+
+# List of images to include in the PDF
+images = ['Dice_Filter.png', 'Check.png', 'Thresholded_ROI.png']
+
+# Generate the PDF report
+create_pdf_report(dice_data, images)
+
+
+# Save the annotated image
+cv.imwrite('Dice_Filter.png', warped_image)
+cv.imwrite('Check.png', yellow_mask)
+cv.imwrite('Thresholded_ROI.png', thresh)
+
 cv.waitKey(0)
 cv.destroyAllWindows()
+
