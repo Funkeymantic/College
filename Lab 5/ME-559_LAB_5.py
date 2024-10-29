@@ -163,7 +163,7 @@ for contour in contours:
         # Display the pip count for each die
         print(f"Pip count for dice: {pip_count}")
 # Save the image with rotated bounding boxes and dots
-cv.imwrite('Dice_Filter.png', cropped_image)
+cv.imwrite('Dice_Filter.png', yellow_mask)
 
 # Display the result (optional)
 # cv.namedWindow('Dice Detection', cv.WINDOW_NORMAL) # Create a resizable window
