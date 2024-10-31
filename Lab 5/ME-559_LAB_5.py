@@ -187,7 +187,7 @@ hsv = cv.cvtColor(warped_image, cv.COLOR_BGR2HSV)
 
 # Define yellow color range
 lower_yellow = np.array([28, 255, 150])
-upper_yellow = np.array([50, 255, 255])
+upper_yellow = np.array([40, 255, 255])
 yellow_mask = cv.inRange(hsv, lower_yellow, upper_yellow)
 
 # Detect dice contours
