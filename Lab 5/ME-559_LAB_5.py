@@ -1,3 +1,4 @@
+# Create a timer when operation starts and ends
 import cv2 as cv
 import numpy as np
 import gxipy as gx
