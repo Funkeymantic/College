@@ -1,6 +1,6 @@
 """
-Improved program to control two robots with different coordinate systems and grippers,
-capture images, identify dice, and calibrate each robot's coordinates using homography.
+Enhanced program for handling two robots with distinct grippers and opposite y-direction
+movements, capturing image data, identifying dice, and calibrating with homography.
 """
 
 import cv2
@@ -9,7 +9,7 @@ import sys
 sys.path.append('../fanuc_ethernet_ip_drivers/src')
 from robot_controller import robot as Robot
 
-# Set robot IPs and initial parameters
+# Set robot IPs
 robot_beaker_ip = '172.29.208.124'
 robot_bunsen_ip = '172.29.208.123'
 
@@ -33,16 +33,14 @@ dice_positions_bunsen = [
     ([651.25, -553.66, z2], [651.25, -553.66, z21])
 ]
 
-# Adjust coordinates to common frame if necessary
+# Adjust coordinates based on robot-specific movements
 def transform_coordinates(coords, robot_ip):
-    # If robot systems need a transformation to a common frame, apply it here
+    # Adjust y-direction based on the robot
     if robot_ip == robot_bunsen_ip:
-        # Example transformation for Bunsen if needed (e.g., translation or rotation)
-        coords[0] += 10  # Example x offset
-        coords[1] -= 10  # Example y offset
+        coords[1] = -coords[1]  # Reverse y for Bunsen
     return coords
 
-# Get robot coordinates with transformation applied
+# Function to get robot coordinates with transformation
 def get_robot_coords(robot_ip):
     robot = Robot(robot_ip)
     coords = robot.read_current_cartesian_pose()[:2]
@@ -82,19 +80,36 @@ def get_image_coords(image_path):
     return dice_image_coords
 
 # Function to move dice for each robot and record positions
-def move_and_record_dice(robot_ip, dice_positions):
+def move_and_record_dice(robot_ip, dice_positions, gripper_type):
     robot = Robot(robot_ip)
     robot_coords = []
 
+    # Define the home position based on the robot
     home_pose = [0, 0, 0, 0, -90, 30] if robot_ip == robot_beaker_ip else [0, 0, 0, 0, -90, -150]
     robot.write_joint_pose(home_pose)
 
     for dice, dice_high in dice_positions:
-        robot.schunk_gripper('open')
+        # Open gripper based on type
+        if gripper_type == 'schunk':
+            robot.schunk_gripper('open')
+        elif gripper_type == 'onRobot':
+            robot.onRobot_gripper_open(100, 60)
+        
         robot.write_cartesian_position(dice)
-        robot.schunk_gripper('close')
+        
+        # Close gripper based on type
+        if gripper_type == 'schunk':
+            robot.schunk_gripper('close')
+        elif gripper_type == 'onRobot':
+            robot.onRobot_gripper_close(77, 60)
+        
         robot.write_cartesian_position(dice_high)
-        robot.schunk_gripper('open')
+
+        # Open gripper to release dice
+        if gripper_type == 'schunk':
+            robot.schunk_gripper('open')
+        elif gripper_type == 'onRobot':
+            robot.onRobot_gripper_open(100, 60)
         
         # Capture and record transformed robot coordinates
         current_coords = get_robot_coords(robot_ip)
@@ -107,8 +122,8 @@ def move_and_record_dice(robot_ip, dice_positions):
 # Main function to execute dice placement, capture image, and calculate homography
 def main():
     # Move dice and record positions for each robot
-    dice_beaker_coords = move_and_record_dice(robot_beaker_ip, dice_positions_beaker)
-    dice_bunsen_coords = move_and_record_dice(robot_bunsen_ip, dice_positions_bunsen)
+    dice_beaker_coords = move_and_record_dice(robot_beaker_ip, dice_positions_beaker, gripper_type='schunk')
+    dice_bunsen_coords = move_and_record_dice(robot_bunsen_ip, dice_positions_bunsen, gripper_type='onRobot')
     
     # Get image coordinates
     image_path = "dice.png"  # Replace with actual image path
