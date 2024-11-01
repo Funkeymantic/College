@@ -6,7 +6,7 @@ cordinate system.
 import cv2
 import numpy as np
 import sys
-sys.path.append('/home/nathan/Documents/Robotics/Lab 5/Lab5/fanuc_ethernet_ip_drivers/src')
+sys.path.append('./fanuc_ethernet_ip_drivers/src')
 from robot_controller import robot as Robot
 
 robot_ip = '172.29.208.124' # Beaker
