@@ -151,11 +151,11 @@ def main():
         print(f"Dice {i} is done!")
     robot.write_joint_pose(Home2)
 
-    # cv2.namedWindow('Current Dice', cv2.WINDOW_NORMAL)
-    # get_image_cords(
-    #     image_path = "dice.png",
-    #     robot_ip = robot_ip,
-    #     output_file= "transform_mat.txt"
+    cv2.namedWindow('Current Dice', cv2.WINDOW_NORMAL)
+    get_image_cords(
+        image_path = "dice.png",
+        robot_ip = robot_ip,
+        output_file= "transform_mat.txt"
     # )
 
 
