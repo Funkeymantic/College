@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./Lab 5/fanuc_ethernet_ip_drivers/src"
+    ]
+}
