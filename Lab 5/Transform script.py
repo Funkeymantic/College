@@ -97,6 +97,8 @@ z11 = -128.0
 z2 = -38.0
 z21 = -146.0 
 
+dice_beaker_cords: list = []
+dice_bunsen_cords: list = []
 
 def main():
     robot = Robot('172.29.208.124')
@@ -111,19 +113,22 @@ def main():
         ([651.25, 774.17, z1], [651.25, 774.17, z11])
     ]
 
-    # robot.write_joint_pose(Home1)
-    # for i, (dice, dice_high) in enumerate(dice_positions, start=1):
-    #     robot.schunk_gripper('open')
-    #     robot.write_cartesian_position([468, -5, z1, -179.9, 0.0, 30.0])
-    #     robot.write_cartesian_position(Die1)
-    #     robot.schunk_gripper('close')
-    #     robot.write_cartesian_position([468, -5, z1, -179.9, 0.0, 30.0])
-    #     robot.write_cartesian_position(dice)
-    #     robot.write_cartesian_position(dice_high)
-    #     robot.schunk_gripper('open')
-    #     robot.write_cartesian_position(dice)
-    #     print(f"Dice {i} is done!")
-    # robot.write_joint_pose(Home1)
+    robot.write_joint_pose(Home1)
+    for i, (dice, dice_high) in enumerate(dice_positions, start=1):
+        robot.schunk_gripper('open')
+        robot.write_cartesian_position([468, -5, z1, -179.9, 0.0, 30.0])
+        robot.write_cartesian_position(Die1)
+        robot.schunk_gripper('close')
+        robot.write_cartesian_position([468, -5, z1, -179.9, 0.0, 30.0])
+        robot.write_cartesian_position(dice)
+        robot.write_cartesian_position(dice_high)
+        robot.schunk_gripper('open')
+        current_robot_coordinates = get_robot_cords(robot_ip)
+        print(f"Robot coordinates: {current_robot_coordinates}")
+        dice_beaker_cords.apend(current_robot_coordinates)
+        robot.write_cartesian_position(dice)
+        print(f"Dice {i} is done!")
+    robot.write_joint_pose(Home1)
 
     robot = Robot('172.29.208.123')
     
@@ -147,6 +152,9 @@ def main():
         robot.write_cartesian_position(dice)
         robot.write_cartesian_position(dice_high)
         robot.onRobot_gripper_open(100, 60)
+        current_robot_coordinates = get_robot_cords(robot_ip)
+        print(f"Robot coordinates: {current_robot_coordinates}")
+        dice_bunsen_cords.apend(current_robot_coordinates)
         robot.write_cartesian_position(dice)
         print(f"Dice {i} is done!")
     robot.write_joint_pose(Home2)
@@ -156,7 +164,7 @@ def main():
         image_path = "dice.png",
         robot_ip = robot_ip,
         output_file= "transform_mat.txt"
-    # )
+    )
 
 
 if __name__=='__main__':
