@@ -6,14 +6,6 @@ from PIL import Image
 import os
 from fpdf import FPDF
 import json
-# import subprocess
-
-# # Change to the directory
-# subprocess.run(["cd", "Galaxy_Camera_SDK/Galaxy_camera/bin"], shell=True)
-
-# # Execute the GalaxyView command
-# subprocess.run(["./GalaxyView"], shell=True)
-
 
 '''
 Capture Image
@@ -319,17 +311,13 @@ with open(output_file, "w") as f:
 
 print(f"Dice data has been saved to {output_file}")
 
-# # Save the dice data to a text file
-# with open(output_file, "w") as f:
-#     f.write("[\n")  # Start the array
-#     for i, die in enumerate(dice_data, start=1):
-#         # Structure each entry as {dice number: [pips, [robot x, robot y], rotation]}
-#         f.write(f"  {{'Dice_Robot {i}': [{die['pips']}, [{die['robot_position'][0]:.2f}, {die['robot_position'][1]:.2f}], {die['rotation']:.2f}]}}\n")
-#         f.write(f"  {{'Dice_Pixel {i}': [{die['pips']}, [{die['pixel_center'][0]:.2f}, {die['pixel_center'][1]:.2f}], {die['rotation']:.2f}]}}\n")
-#         print(f"Dice {i}")
-#     f.write("]\n")  # Close the array
+# Save the annotated image
+cv.imwrite('Dice_Filter.png', warped_image)
+cv.imwrite('Check.png', yellow_mask)
+cv.imwrite('Thresholded_ROI.png', thresh)
 
-# print(f"Dice data has been saved to {output_file}")
+cv.waitKey(0)
+cv.destroyAllWindows()
 
 # Load dice data from JSON file
 with open(output_file, "r") as f:
@@ -391,13 +379,3 @@ images = ['Dice_Filter.png', 'Check.png', 'Thresholded_ROI.png']
 
 # Generate the PDF report
 create_pdf_report(dice_data, images)
-
-
-# Save the annotated image
-cv.imwrite('Dice_Filter.png', warped_image)
-cv.imwrite('Check.png', yellow_mask)
-cv.imwrite('Thresholded_ROI.png', thresh)
-
-cv.waitKey(0)
-cv.destroyAllWindows()
-
