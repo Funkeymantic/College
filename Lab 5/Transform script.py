@@ -159,6 +159,7 @@ def main():
         print(f"Dice {i} is done!")
     robot.write_joint_pose(Home2)
 
+    #trying to understanc this
     cv2.namedWindow('Current Dice', cv2.WINDOW_NORMAL)
     get_image_cords(
         image_path = "dice.png",
