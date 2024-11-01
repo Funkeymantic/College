@@ -64,14 +64,14 @@ def get_image_cords(image_path, robot_ip, output_file) -> np.ndarray:
         # Display the output image
         cv2.imshow("Current Dice", output)
         print(f"Dice Cordinates: {current_image_cord}")
-        print("Please Move Robot to current Selected Dice")
-        input("Hit Enter when robot is in the correct position")
+        user_input = input(f"What is this dice robot coordinates?")
+        number = int(user_input)
         # Read the robots Cordinates
-        current_robot_cords = get_robot_cords(robot_ip)
-        print(f"Robot Cordinates: {current_robot_cords}")
+        # current_robot_cords = get_robot_cords(robot_ip)
+        # print(f"Robot Cordinates: {current_robot_cords}")
         # Add the cordinates
         dice_image_cords.append(current_image_cord)
-        dice_robot_cords.append(current_robot_cords)
+        # dice_robot_cords.append(current_robot_cords)
 
     # Calculate the transformation matrix
     src_cords = np.array(dice_image_cords)
@@ -154,7 +154,7 @@ def main():
         robot.onRobot_gripper_open(100, 60)
         current_robot_coordinates = get_robot_cords(robot_ip)
         print(f"Robot coordinates: {current_robot_coordinates}")
-        dice_bunsen_cords.apend(current_robot_coordinates)
+        dice_bunsen_cords.append(current_robot_coordinates)
         robot.write_cartesian_position(dice)
         print(f"Dice {i} is done!")
     robot.write_joint_pose(Home2)
