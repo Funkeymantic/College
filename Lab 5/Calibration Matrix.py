@@ -15,7 +15,7 @@ robot_bunsen_ip = '172.29.208.123'
 
 # Define z-heights and dice positions for each robot
 z1, z11 = -31.0, -128.0  # Beaker heights
-z2, z21 = -38.0, -146.0  # Bunsen heights
+# z2, z21 = -38.0, -146.0  # Bunsen heights
 dice_positions_beaker = [
     ([283.75, 555.33, z1], [283.75, 555.33, z11]),
     ([467.5, 555.33, z1], [467.5, 555.33, z11]),
@@ -24,14 +24,14 @@ dice_positions_beaker = [
     ([467.5, 774.17, z1], [467.5, 774.17, z11]),
     ([651.25, 774.17, z1], [651.25, 774.17, z11])
 ]
-dice_positions_bunsen = [
-    ([283.75, -770.83, z2], [283.75, -770.83, z21]),
-    ([467.5, -770.83, z2], [467.5, -770.83, z21]),
-    ([651.25, -770.83, z2], [651.25, -770.83, z21]),
-    ([283.75, -553.66, z2], [283.75, -553.66, z21]),
-    ([467.5, -553.66, z2], [467.5, -553.66, z21]),
-    ([651.25, -553.66, z2], [651.25, -553.66, z21])
-]
+# dice_positions_bunsen = [
+#     ([283.75, -770.83, z2], [283.75, -770.83, z21]),
+#     ([467.5, -770.83, z2], [467.5, -770.83, z21]),
+#     ([651.25, -770.83, z2], [651.25, -770.83, z21]),
+#     ([283.75, -553.66, z2], [283.75, -553.66, z21]),
+#     ([467.5, -553.66, z2], [467.5, -553.66, z21]),
+#     ([651.25, -553.66, z2], [651.25, -553.66, z21])
+# ]
 
 # Adjust coordinates based on robot-specific movements
 def transform_coordinates(coords, robot_ip):
@@ -92,24 +92,25 @@ def move_and_record_dice(robot_ip, dice_positions, gripper_type):
         # Open gripper based on type
         if gripper_type == 'schunk':
             robot.schunk_gripper('open')
-        elif gripper_type == 'onRobot':
-            robot.onRobot_gripper_open(100, 60)
+        # elif gripper_type == 'onRobot':
+        #     robot.onRobot_gripper_open(100, 60)
+    
         
         robot.write_cartesian_position(dice)
         
         # Close gripper based on type
         if gripper_type == 'schunk':
             robot.schunk_gripper('close')
-        elif gripper_type == 'onRobot':
-            robot.onRobot_gripper_close(77, 60)
+        # elif gripper_type == 'onRobot':
+        #     robot.onRobot_gripper_close(77, 60)
         
         robot.write_cartesian_position(dice_high)
 
         # Open gripper to release dice
         if gripper_type == 'schunk':
             robot.schunk_gripper('open')
-        elif gripper_type == 'onRobot':
-            robot.onRobot_gripper_open(100, 60)
+        # elif gripper_type == 'onRobot':
+        #     robot.onRobot_gripper_open(100, 60)
         
         # Capture and record transformed robot coordinates
         current_coords = get_robot_coords(robot_ip)
@@ -123,7 +124,7 @@ def move_and_record_dice(robot_ip, dice_positions, gripper_type):
 def main():
     # Move dice and record positions for each robot
     dice_beaker_coords = move_and_record_dice(robot_beaker_ip, dice_positions_beaker, gripper_type='schunk')
-    dice_bunsen_coords = move_and_record_dice(robot_bunsen_ip, dice_positions_bunsen, gripper_type='onRobot')
+    # dice_bunsen_coords = move_and_record_dice(robot_bunsen_ip, dice_positions_bunsen, gripper_type='onRobot')
     
     # Get image coordinates
     image_path = "dice.png"  # Replace with actual image path
@@ -136,7 +137,7 @@ def main():
         index = int(input(f"Enter the robot coordinates array index for Dice {i}: "))
         
         # Match image dice to robot dice coordinates with correct offset
-        dice_robot_coords.append(dice_beaker_coords[index] if index < len(dice_beaker_coords) else dice_bunsen_coords[index - len(dice_beaker_coords)])
+        dice_robot_coords.append(dice_beaker_coords[index] if index < len(dice_beaker_coords))
 
     # Calculate homography matrix
     src_points = np.array(dice_image_coords)
