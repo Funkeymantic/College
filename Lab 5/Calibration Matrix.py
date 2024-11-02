@@ -1,54 +1,46 @@
-"""
-Enhanced program for handling two robots with distinct grippers and opposite y-direction
-movements, capturing image data, identifying dice, and calibrating with homography.
-"""
-
 import cv2
 import numpy as np
+import json
+import time
 import sys
+import subprocess
+import os
+
 sys.path.append('../fanuc_ethernet_ip_drivers/src')
 from robot_controller import robot as Robot
 
-# Set robot IPs
-robot_beaker_ip = '172.29.208.124'
-robot_bunsen_ip = '172.29.208.123'
+system_python = "/usr/bin/python3"
+robot_ip = '172.29.208.124'
 
-# Define z-heights and dice positions for each robot
-z1, z11 = -31.0, -128.0  # Beaker heights
-# z2, z21 = -38.0, -146.0  # Bunsen heights
+# Define z-heights for the Beaker robot
+z1, z11 = -30.0, -125.0
+
+# Define 3x3 grid of dice positions within the boundary points
 dice_positions_beaker = [
-    ([283.75, 555.33, z1], [283.75, 555.33, z11]),
-    ([467.5, 555.33, z1], [467.5, 555.33, z11]),
-    ([651.25, 555.33, z1], [651.25, 555.33, z11]),
-    ([283.75, 774.17, z1], [283.75, 774.17, z11]),
-    ([467.5, 774.17, z1], [467.5, 774.17, z11]),
-    ([651.25, 774.17, z1], [651.25, 774.17, z11])
+    ([283.75, 467.83, z1], [283.75, 467.83, z11]),
+    ([467.5, 467.83, z1], [467.5, 467.83, z11]),
+    ([651.25, 467.83, z1], [651.25, 467.83, z11]),
+    ([283.75, 686.67, z1], [283.75, 686.67, z11]),
+    ([467.5, 686.67, z1], [467.5, 686.67, z11]),
+    ([651.25, 686.67, z1], [651.25, 686.67, z11]),
+    ([283.75, 905.5, z1], [283.75, 905.5, z11]),
+    ([467.5, 905.5, z1], [467.5, 905.5, z11]),
+    ([651.25, 905.5, z1], [651.25, 905.5, z11])
 ]
-# dice_positions_bunsen = [
-#     ([283.75, -770.83, z2], [283.75, -770.83, z21]),
-#     ([467.5, -770.83, z2], [467.5, -770.83, z21]),
-#     ([651.25, -770.83, z2], [651.25, -770.83, z21]),
-#     ([283.75, -553.66, z2], [283.75, -553.66, z21]),
-#     ([467.5, -553.66, z2], [467.5, -553.66, z21]),
-#     ([651.25, -553.66, z2], [651.25, -553.66, z21])
-# ]
 
-# Adjust coordinates based on robot-specific movements
-def transform_coordinates(coords, robot_ip):
-    # Adjust y-direction based on the robot
-    if robot_ip == robot_bunsen_ip:
-        coords[1] = -coords[1]  # Reverse y for Bunsen
-    return coords
-
-# Function to get robot coordinates with transformation
-def get_robot_coords(robot_ip):
+# Function to retrieve robot coordinates
+def get_robot_cords(robot_ip):
     robot = Robot(robot_ip)
-    coords = robot.read_current_cartesian_pose()[:2]
-    return transform_coordinates(coords, robot_ip)
+    return robot.read_current_cartesian_pose()[:2]  # Get x, y coordinates only
 
-# Process image and capture dice coordinates
-def get_image_coords(image_path):
+# Function to capture image coordinates and compute the transformation matrix
+def get_image_cords(image_path, robot_ip, output_file):
     img = cv2.imread(image_path)
+    if img is None:
+        print("Error: Image could not be loaded.")
+        return None
+    
+    # Process image to find dice contours
     image_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     image_hsv_blur = cv2.GaussianBlur(image_hsv, (5, 5), 1)
     lower_yellow = np.array([28, 255, 150])
@@ -56,99 +48,46 @@ def get_image_coords(image_path):
     mask = cv2.inRange(image_hsv_blur, lower_yellow, upper_yellow)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     
-    # List to hold image coordinates of each detected dice
-    dice_image_coords = []
-    cv2.namedWindow('Current Dice', cv2.WINDOW_NORMAL)
+    dice_image_cords, dice_robot_cords = [], []
     
+    # Process each contour to get dice coordinates
     for cnt in contours:
         area = cv2.contourArea(cnt)
         if area < 5000:
-            continue  # Filter out small artifacts
-
+            continue
         moment = cv2.moments(cnt)
-        cx = int(moment['m10'] / moment['m00'])
-        cy = int(moment['m01'] / moment['m00'])
-        dice_image_coords.append([cx, cy])
+        cx, cy = int(moment['m10'] / moment['m00']), int(moment['m01'] / moment['m00'])
+        dice_image_cords.append([cx, cy])
+        dice_robot_cords.append(get_robot_cords(robot_ip))
 
-        # Display image with marked dice
-        output = img.copy()
-        cv2.drawContours(output, [cnt], -1, (0, 255, 0), 3)
-        cv2.imshow("Current Dice", output)
-        cv2.waitKey(500)
+    # Calculate and save the transformation matrix
+    src_cords, dst_cords = np.array(dice_image_cords), np.array(dice_robot_cords)
+    transform_matrix, _ = cv2.findHomography(src_cords, dst_cords, cv2.RANSAC, confidence=0.9)
+    transform_data = {
+        "image_coords": dice_image_cords,
+        "robot_coords": dice_robot_cords,
+        "transformation_matrix": transform_matrix.tolist()
+    }
+    with open(output_file, "w") as f:
+        json.dump(transform_data, f, indent=4)
+    print(f"Transformation matrix and coordinates saved to {output_file}")
+    return transform_matrix
 
-    cv2.destroyAllWindows()
-    return dice_image_coords
-
-# Function to move dice for each robot and record positions
-def move_and_record_dice(robot_ip, dice_positions, gripper_type):
-    robot = Robot(robot_ip)
-    robot_coords = []
-
-    # Define the home position based on the robot
-    home_pose = [0, 0, 0, 0, -90, 30] if robot_ip == robot_beaker_ip else [0, 0, 0, 0, -90, -150]
-    robot.write_joint_pose(home_pose)
-
-    for dice, dice_high in dice_positions:
-        # Open gripper based on type
-        if gripper_type == 'schunk':
-            robot.schunk_gripper('open')
-        # elif gripper_type == 'onRobot':
-        #     robot.onRobot_gripper_open(100, 60)
-    
-        
-        robot.write_cartesian_position(dice)
-        
-        # Close gripper based on type
-        if gripper_type == 'schunk':
-            robot.schunk_gripper('close')
-        # elif gripper_type == 'onRobot':
-        #     robot.onRobot_gripper_close(77, 60)
-        
-        robot.write_cartesian_position(dice_high)
-
-        # Open gripper to release dice
-        if gripper_type == 'schunk':
-            robot.schunk_gripper('open')
-        # elif gripper_type == 'onRobot':
-        #     robot.onRobot_gripper_open(100, 60)
-        
-        # Capture and record transformed robot coordinates
-        current_coords = get_robot_coords(robot_ip)
-        robot_coords.append(current_coords)
-        print(f"Recorded robot coordinates for dice: {current_coords}")
-
-    robot.write_joint_pose(home_pose)
-    return robot_coords
-
-# Main function to execute dice placement, capture image, and calculate homography
+# Main function
 def main():
-    # Move dice and record positions for each robot
-    dice_beaker_coords = move_and_record_dice(robot_beaker_ip, dice_positions_beaker, gripper_type='schunk')
-    # dice_bunsen_coords = move_and_record_dice(robot_bunsen_ip, dice_positions_bunsen, gripper_type='onRobot')
+    output_file = "transform_data.json"
     
-    # Get image coordinates
-    image_path = "dice.png"  # Replace with actual image path
-    dice_image_coords = get_image_coords(image_path)
-
-    # Prompt user to match dice in image to robot coordinates
-    dice_robot_coords = []
-    for i, image_coord in enumerate(dice_image_coords, start=1):
-        print(f"Image coordinates for Dice {i}: {image_coord}")
-        index = int(input(f"Enter the robot coordinates array index for Dice {i}: "))
-        
-        # Match image dice to robot dice coordinates with correct offset
-        dice_robot_coords.append(dice_beaker_coords[index] if index < len(dice_beaker_coords))
-
-    # Calculate homography matrix
-    src_points = np.array(dice_image_coords)
-    dst_points = np.array(dice_robot_coords)
-    transform_matrix, _ = cv2.findHomography(src_points, dst_points, cv2.RANSAC, confidence=0.9)
-    print("Calculated Transformation Matrix:")
-    print(transform_matrix)
-
-    # Save transformation matrix to file
-    with open("transform_mat.txt", mode="w") as file:
-        file.write(str(transform_matrix))
+    # Run Dice_Identification.py to capture image
+    subprocess.run([system_python, "/home/funkey/ME-559/College/Lab 5/Dice_Identification.py"])
+    time.sleep(1)  # Wait for image capture to complete
+    
+    # Process the captured image and save the transformation matrix
+    get_image_cords(
+        image_path="/home/funkey/ME-559/College/Lab 5/dice.png",
+        robot_ip=robot_ip,
+        output_file=output_file
+    )
 
 if __name__ == '__main__':
     main()
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        

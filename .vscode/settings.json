@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
-        "./Lab 5/fanuc_ethernet_ip_drivers/src"
+        "./Lab 5/fanuc_ethernet_ip_drivers/src",
+        "./Lab 5/Galaxy Camera Demo/Galaxy_Camera_Python/api"
     ]
 }
