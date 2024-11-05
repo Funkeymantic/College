@@ -7,6 +7,8 @@ import os
 from fpdf import FPDF
 import json
 
+
+
 '''
 Capture Image
 '''
@@ -185,6 +187,7 @@ yellow_mask = cv.inRange(hsv, lower_yellow, upper_yellow)
 
 # Detect dice contours
 contours, _ = cv.findContours(yellow_mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+detected_dice_centers = []
 dice_data = []
 cv.imwrite('Check.png', yellow_mask)
 
@@ -310,6 +313,32 @@ with open(output_file, "w") as f:
     json.dump(data_list, f, indent=4)
 
 print(f"Dice data has been saved to {output_file}")
+
+# Load transformation matrix from transform_mat.txt
+with open("transform_mat.txt", "r") as f:
+    transform_matrix = np.array(eval(f.read()), dtype="float32")
+
+# Function to convert pixel to robot coordinates using homography
+def transform_pixel_to_robot(pixel_position):
+    px, py = pixel_position
+    transformed_point = cv.perspectiveTransform(np.array([[[px, py]]], dtype="float32"), transform_matrix)
+    return transformed_point[0][0]
+
+# Load image, process dice detection (existing code here), and transform coordinates
+dice_data = []
+for dice_pixel_center in detected_dice_centers:
+    robot_position = transform_pixel_to_robot(dice_pixel_center)
+    dice_data.append({
+        "pixel_center": dice_pixel_center,
+        "robot_position": {"x": robot_position[0], "y": robot_position[1]},
+        "pips": num_pips  # Assuming pips detection already done
+    })
+
+# Save to JSON
+with open("dice_positions.json", "w") as f:
+    json.dump(dice_data, f, indent=4)
+
+print("Dice positions and robot coordinates saved.")
 
 # Save the annotated image
 cv.imwrite('Dice_Filter.png', warped_image)

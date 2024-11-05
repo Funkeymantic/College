@@ -167,6 +167,37 @@ def main():
         output_file= "transform_mat.txt"
     )
 
+    import json
+
+    # Load previously detected dice pixel coordinates
+    with open("dice_positions.json", "r") as f:
+        dice_data = json.load(f)
+
+    # Function to manually match dice with robot coordinates
+    def manual_calibration(dice_data):
+        matched_robot_coords = []
+        for die in dice_data:
+            pixel_coord = die["pixel_center"]
+            print(f"Dice at pixel coordinate: {pixel_coord}")
+            
+            # Ask user to input matching robot coordinates
+            robot_x = float(input("Enter matching robot X coordinate: "))
+            robot_y = float(input("Enter matching robot Y coordinate: "))
+            
+            # Store matched coordinates
+            matched_robot_coords.append((pixel_coord, (robot_x, robot_y)))
+        
+        return matched_robot_coords
+
+    # Get matched coordinates
+    matched_coordinates = manual_calibration(dice_data)
+
+    # Save calibration data to a file if needed
+    with open("matched_coordinates.json", "w") as f:
+        json.dump(matched_coordinates, f, indent=4)
+
+    print("Calibration completed and saved.")
+
 
 if __name__=='__main__':
     main()

@@ -4,37 +4,41 @@ import subprocess
 import cv2 as cv
 import json
 
-def Capture_image(type, file):
-    # Run operation_script.py and capture any output or errors
-    try:
-        result = subprocess.run(
-            [type, file],  # Adjust "python" if needed
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        print("Subprocess output:", result.stdout)
-    except subprocess.CalledProcessError as e:
-        print("An error occurred:", e.stderr)
+import subprocess
+import json
+from fanuc_ethernet_ip_drivers.robot_controller import Robot
 
-    # Check for output files
-    # Load and display the generated image
-    try:
-        image = cv.imread("output_image.png")
-        if image is not None:
-            cv.imshow("Generated Image", image)
-            cv.waitKey(0)
-            cv.destroyAllWindows()
-        else:
-            print("No image file found.")
+# Execute Dice_Identification.py
+subprocess.run(["python", "Dice_Identification.py"], check=True)
 
-        # Load and print the generated JSON data
-        with open("output_data.json", "r") as json_file:
-            data = json.load(json_file)
-            print("Generated JSON data:", data)
-    except FileNotFoundError as e:
-        print("Output file not found:", e)
+# Load JSON data from dice_positions.json
+with open("dice_positions.json", "r") as f:
+    dice_data = json.load(f)
 
+# Connect to Beaker Robot
+beaker_ip = "172.29.208.124"  # Replace with Beaker's actual IP address
+beaker = Robot(beaker_ip)
+beaker.write_joint_pose([0, 0, 0, 0, -90, 30])  # Move Beaker to Home1 position
+
+# Define stacking position parameters
+stack_x, stack_y, stack_z = 468, -5, -185  # Base position for stacking
+dice_size = 80  # Dice are 8 cm (80 mm) each
+stack_height_increment = dice_size  # Increase in z-axis per dice
+
+# Stack each dice based on JSON coordinates
+for i, die in enumerate(dice_data, start=1):
+    # Get robot coordinates from JSON data
+    robot_x, robot_y = die["robot_position"]["x"], die["robot_position"]["y"]
+
+    # Move Beaker to dice position and grab it
+    beaker.write_cartesian_position([robot_x, robot_y, stack_z, -179.9, 0.0, 30.0])
+    beaker.schunk_gripper("close")
+    
+    # Move to stacking position, incrementing height for each dice
+    beaker.write_cartesian_position([stack_x, stack_y, stack_z + i * stack_height_increment, -179.9, 0.0, 30.0])
+    beaker.schunk_gripper("open")
+
+print("All dice stacked successfully.")
 
 
 
