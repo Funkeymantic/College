@@ -6,7 +6,7 @@ import json
 
 import subprocess
 import json
-from fanuc_ethernet_ip_drivers.robot_controller import Robot
+from robot_controller import Robot
 
 # Execute Dice_Identification.py
 subprocess.run(["python", "Dice_Identification.py"], check=True)
