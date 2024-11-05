@@ -125,7 +125,7 @@ def main():
         robot.schunk_gripper('open')
         current_robot_coordinates = get_robot_cords(robot_ip)
         print(f"Robot coordinates: {current_robot_coordinates}")
-        dice_beaker_cords.apend(current_robot_coordinates)
+        dice_beaker_cords.append(current_robot_coordinates)
         robot.write_cartesian_position(dice)
         print(f"Dice {i} is done!")
     robot.write_joint_pose(Home1)

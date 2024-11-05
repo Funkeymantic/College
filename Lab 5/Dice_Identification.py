@@ -83,9 +83,6 @@ def capture_image(camera, filename):
         print('Failed to convert image to an RGB image.')
         exit(1)
 
-    # Apply image improvements
-    # rgb_image.image_improvement(color_correction, contrast_lut, gamma_lut)
-
     # Convert numpy array to save image
     numpy_image = rgb_image.get_numpy_array()
     if numpy_image is None:

@@ -11,12 +11,16 @@ from robot_controller import robot as Robot
 
 system_python = "/usr/bin/python3"
 robot_ip = '172.29.208.124'
+beaker = Robot(robot_ip)
 
 # Define z-heights for the Beaker robot
 z1, z11 = -30.0, -125.0
+Home = [0.0, 0.0, 0.0, 0.0, -90, 30]
+Die = [468, -5, -185, -179.9, 0.0, 30.0]
+dice_beaker_cords: list = []
 
 # Define 3x3 grid of dice positions within the boundary points
-dice_positions_beaker = [
+dice_positions = [
     ([283.75, 467.83, z1], [283.75, 467.83, z11]),
     ([467.5, 467.83, z1], [467.5, 467.83, z11]),
     ([651.25, 467.83, z1], [651.25, 467.83, z11]),
@@ -27,6 +31,8 @@ dice_positions_beaker = [
     ([467.5, 905.5, z1], [467.5, 905.5, z11]),
     ([651.25, 905.5, z1], [651.25, 905.5, z11])
 ]
+
+
 
 # Function to retrieve robot coordinates
 def get_robot_cords(robot_ip):
@@ -39,6 +45,10 @@ def get_image_cords(image_path, robot_ip, output_file):
     if img is None:
         print("Error: Image could not be loaded.")
         return None
+    if not os.path.exists(image_path):
+        print(f"Error: Image file {image_path} does not exist.")
+        return None
+
     
     # Process image to find dice contours
     image_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -75,18 +85,47 @@ def get_image_cords(image_path, robot_ip, output_file):
 
 # Main function
 def main():
+    beaker = Robot(robot_ip)  # Instantiate the Robot instance
+    beaker.write_joint_pose(Home)  # Move robot to home position
+
+    for i, (dice, dice_high) in enumerate(dice_positions, start=1):
+        beaker.schunk_gripper('open')
+        beaker.write_cartesian_position([468, -5, z1, -179.9, 0.0, 30.0])
+        beaker.write_cartesian_position(Die)
+        beaker.schunk_gripper('close')
+        beaker.write_cartesian_position([468, -5, z1, -179.9, 0.0, 30.0])
+        beaker.write_cartesian_position(dice)
+        beaker.write_cartesian_position(dice_high)
+        beaker.schunk_gripper('open')
+        current_robot_coordinates = get_robot_cords(robot_ip)
+        print(f"Robot coordinates: {current_robot_coordinates}")
+        dice_beaker_cords.append(current_robot_coordinates)
+        beaker.write_cartesian_position(dice)
+        print(f"Dice {i} is done!")
+
+    beaker.write_joint_pose(Home)
+
+    current_robot_coordinates = get_robot_cords(beaker)
+
+
     output_file = "transform_data.json"
     
     # Run Dice_Identification.py to capture image
-    subprocess.run([system_python, "/home/funkey/ME-559/College/Lab 5/Dice_Identification.py"])
-    time.sleep(1)  # Wait for image capture to complete
+    try:
+        subprocess.run([system_python, "/home/funkey/ME-559/College/Lab 5/Dice_Identification.py"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running Dice_Identification.py: {e}")
+
     
     # Process the captured image and save the transformation matrix
     get_image_cords(
         image_path="/home/funkey/ME-559/College/Lab 5/dice.png",
         robot_ip=robot_ip,
         output_file=output_file
+        
     )
+    
+    
 
 if __name__ == '__main__':
     main()
