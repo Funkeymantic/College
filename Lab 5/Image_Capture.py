@@ -45,7 +45,7 @@ def open_camera(device_manager):
 def capture_image(camera, filename):
     # Get the current Image
     print("Attempting to capture image...")
-    raw_image = camera.data_stream[0].get_image(timeout=5000)
+    raw_image = camera.data_stream[0].get_image(timeout=10000)
     if raw_image is None:
         print("Timeout: Failed to get image.")
         exit(1)
@@ -63,8 +63,12 @@ def capture_image(camera, filename):
         print('Failed to convert RGB image to numpy array.')
         exit(1)
     
+    # Rotate Image
+    Rotated = cv.rotate(numpy_image, cv.ROTATE_90_CLOCKWISE)
+    Flipped = cv.flip(Rotated, 1)
+
     #save Image
-    image = Image.fromarray(numpy_image, 'RGB')
+    image = Image.fromarray(Flipped, 'RGB')
     image.save(filename)
 
 # Find compoatible device on the network
@@ -79,7 +83,7 @@ if camera is None:
 camera.stream_on()
 
 # Capture and save image
-os.chdir('/Home/funkey/ME-559/College/Lab 5')
+os.chdir('./Lab 5')
 filename = 'dice.png'
 capture_image(camera, filename)
 

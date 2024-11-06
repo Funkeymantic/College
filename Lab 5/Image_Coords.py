@@ -1,10 +1,16 @@
 import cv2 as cv
 import numpy as np
 import json
+import os
+
+# Define the base directory and paths
+BASE_DIR = "/home/funkey/ME-559/College/Lab 5"  # Adjust if needed
+image_path = os.path.join(BASE_DIR, 'dice.png')
+output_json_path = "/home/funkey/ME-559/College/Lab 5/dice_positions.json"
 
 
-# Load and process the Image
-image = cv.imread('dice.png')
+# Load and process the image
+image = cv.imread(image_path)
 
 '''
 Define the four points on the original image you want to warp from
@@ -12,16 +18,16 @@ Define the four points on the original image you want to warp from
 '''
 
 src_points = np.float32([
-    [0, 1090],       # Top-left corner
-    [3950, 1100],    # Top-right coner
-    [3950, 3050],    # Bottom-right corner
-    [50, 2850]       # Bottom-left corner
+    [1075, 0],       # Top-left corner
+    [2830, 40],    # Top-right coner
+    [3000, 3835],    # Bottom-right corner
+    [1100, 3920]       # Bottom-left corner
 ])
 
 '''
 Define the points in the output image you to warp to
 '''
-width, height = 3800, 1750 # Adjust these values as needed
+width, height = 800*2, 1670*2 # Adjust these values as needed
 dst_points = np.float32([
     [0,0],           # Top-left corner
     [width, 0],      # Top-right corner
@@ -36,6 +42,7 @@ matrix = cv.getPerspectiveTransform(src_points, dst_points)
 warped_image = cv.warpPerspective(image, matrix, (width, height))
 
 cropped_image = image[1100:3000, 0:4000]
+
 hsv = cv.cvtColor(warped_image, cv.COLOR_BGR2HSV)
 
 # Define yellow color range
@@ -75,9 +82,9 @@ for contour in contours:
             cv.HOUGH_GRADIENT, 
             dp=1.2, 
             minDist=25,           # Increased to reduce close false positives
-            param1=50,            # Edge detection threshold
-            param2=33,            # Accumulator threshold for circle detection
-            minRadius=9,         # Adjusted for pip size
+            param1=60,            # Edge detection threshold
+            param2=30,            # Accumulator threshold for circle detection
+            minRadius=9,          # Adjusted for pip size
             maxRadius=25
         )
 
@@ -89,11 +96,11 @@ for contour in contours:
                     cv.circle(warped_image, (min(box[:, 0]) + cx, min(box[:, 1]) + cy), r, (0, 255, 0), 2)
 
         # Convert dice center from pixels to robot coordinates
-        robot_position = transform_pixel_to_robot((center_x, center_y))
+        # robot_position = transform_pixel_to_robot((center_x, center_y))
 
         dice_data.append({
             "pixel_center": (center_x, center_y),
-            "robot_position": robot_position,
+            # "robot_position": robot_position,
             "pips": num_pips,
             "rotation": angle
         })
@@ -142,7 +149,7 @@ text_offset_y = 40  # Adjust as needed
 # Display results with offset text
 for die in dice_data:
     print(f"Die with {die['pips']} pips at pixel position {die['pixel_center']}, "
-          f"robot position {die['robot_position']} with rotation {die['rotation']} degrees.")
+          f"rotation {die['rotation']} degrees.")
     cv.circle(warped_image, die["pixel_center"], 5, (0, 255, 0), -1)
     # Apply offset to text position
     text_position = (die["pixel_center"][0] + text_offset_x, die["pixel_center"][1] + text_offset_y)
@@ -159,8 +166,8 @@ for i, die in enumerate(dice_data, start=1):
     data_entry = {
         "Dice": i,
         "pips": int(die['pips']),
-        "pixel_center": {"x": int(die['pixel_center'][0]), "y": int(die['pixel_center'][1])},
-        "robot_position": {"x": float(die['robot_position'][0]), "y": float(die['robot_position'][1])},
+        "pixel_center": {"x": int(die['pixel_center'][1]), "y": int(die['pixel_center'][0])},
+        # "robot_position": {"x": float(die['robot_position'][0]), "y": float(die['robot_position'][1])},
         "rotation": float(die['rotation'])
     }
     data_list.append(data_entry)
@@ -171,16 +178,17 @@ with open(output_file, "w") as f:
 
 print(f"Dice data has been saved to {output_file}")
 
-# Save to JSON
-with open("dice_positions.json", "w") as f:
-    json.dump(dice_data, f, indent=4)
+# Save dice data to JSON file
+with open(output_json_path, "w") as f:
+    json.dump(data_list, f, indent=4)
 
-print("Dice positions and robot coordinates saved.")
+print(f"Dice data has been saved to {output_json_path}")
 
-# Save the annotated image
-cv.imwrite('Dice_Filter.png', warped_image)
-cv.imwrite('Check.png', yellow_mask)
-cv.imwrite('Thresholded_ROI.png', thresh)
+# Save images in the BASE_DIR
+cv.imwrite(os.path.join(BASE_DIR, 'Dice_Filter.png'), warped_image)
+cv.imwrite(os.path.join(BASE_DIR, 'Check.png'), yellow_mask)
+cv.imwrite(os.path.join(BASE_DIR, 'Thresholded_ROI.png'), thresh)
+
 
 cv.waitKey(0)
 cv.destroyAllWindows()
