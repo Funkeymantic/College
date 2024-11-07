@@ -124,6 +124,11 @@ def main():
     client.loop_start()
     robot.schunk_gripper('open')
     robot.write_joint_pose(Home)
+
+    # Step 1: Run Image Capture and Coordinates Detection for Section 1
+    run_image_capture()
+    run_image_coords()
+    print("Image Done!")
     publish_status("Ready")
 
     # Wait until Ready signal is received
@@ -131,10 +136,6 @@ def main():
         time.sleep(0.25)
     print("Ready!")
 
-    # Step 1: Run Image Capture and Coordinates Detection for Section 1
-    run_image_capture()
-    run_image_coords()
-    print("Image Done!")
 
     # Load pixel coordinates and transformation matrix
     pixel_data = load_pixel_coordinates("dice_positions.json")
@@ -163,13 +164,13 @@ def main():
     if not Standby:
         print("First section complete without Standby. Publishing 'Standby'.")
         publish_status("Standby")
-        Standby = True  # Mark as standby to avoid repeating
+        Second = True
     
     # Wait until we get a 'Complete' or proceed directly if Standby is False
     while Standby and not Complete:
         robot.write_joint_pose(Home)
         time.sleep(1)
-        Second = True
+        
 
     # Step 3: Process Section 2 if "complete" or continue with even dice
     if Second:
