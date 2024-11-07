@@ -69,6 +69,27 @@ for contour in contours:
         angle = rect[2]
 
         # Detect pips using Hough Circles
+        # # Debugging: Print ROI coordinates
+        # print(f"ROI coordinates: x_min={min(box[:, 0])}, x_max={max(box[:, 0])}, y_min={min(box[:, 1])}, y_max={max(box[:, 1])}")
+
+        # # Ensure coordinates are within bounds
+        # x_min, x_max = min(box[:, 0]), max(box[:, 0])
+        # y_min, y_max = min(box[:, 1]), max(box[:, 1])
+
+        # if (0 <= x_min < warped_image.shape[1] and 0 <= x_max < warped_image.shape[1] and
+        #     0 <= y_min < warped_image.shape[0] and 0 <= y_max < warped_image.shape[0]):
+            
+        #     roi_image = warped_image[y_min:y_max, x_min:x_max]
+            
+        #     # Check if the extracted ROI is empty
+        #     if roi_image.size == 0:
+        #         print("Warning: Extracted ROI image is empty.")
+        #     else:
+        #         gray_roi = cv.cvtColor(roi_image, cv.COLOR_BGR2GRAY)
+        #         # Continue processing...
+        # else:
+        #     print("Error: ROI coordinates are out of image bounds.")
+
         roi_image = warped_image[min(box[:, 1]):max(box[:, 1]), min(box[:, 0]):max(box[:, 0])]
         gray_roi = cv.cvtColor(roi_image, cv.COLOR_BGR2GRAY)
         blurred_roi = cv.GaussianBlur(gray_roi, (9, 9), 1)
@@ -82,8 +103,8 @@ for contour in contours:
             cv.HOUGH_GRADIENT, 
             dp=1.2, 
             minDist=25,           # Increased to reduce close false positives
-            param1=60,            # Edge detection threshold
-            param2=30,            # Accumulator threshold for circle detection
+            param1=40,            # Edge detection threshold
+            param2=31,            # Accumulator threshold for circle detection
             minRadius=9,          # Adjusted for pip size
             maxRadius=25
         )

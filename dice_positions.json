@@ -3,81 +3,45 @@
         "Dice": 1,
         "pips": 2,
         "pixel_center": {
-            "x": 1141,
-            "y": 489
+            "x": 358,
+            "y": 285
         },
-        "rotation": 71.1310043334961
+        "rotation": 53.13010025024414
     },
     {
         "Dice": 2,
-        "pips": 2,
+        "pips": 3,
         "pixel_center": {
-            "x": 1116,
-            "y": 1278
+            "x": 3016,
+            "y": 996
         },
-        "rotation": 0.9240452647209167
+        "rotation": 14.743562698364258
     },
     {
         "Dice": 3,
-        "pips": 2,
+        "pips": 3,
         "pixel_center": {
-            "x": 617,
-            "y": 1370
+            "x": 2853,
+            "y": 1042
         },
-        "rotation": 60.524105072021484
+        "rotation": 15.52410888671875
     },
     {
         "Dice": 4,
-        "pips": 3,
+        "pips": 4,
         "pixel_center": {
-            "x": 717,
-            "y": 949
+            "x": 1043,
+            "y": 860
         },
-        "rotation": 57.7243537902832
+        "rotation": 56.58341979980469
     },
     {
         "Dice": 5,
-        "pips": 4,
-        "pixel_center": {
-            "x": 1141,
-            "y": 928
-        },
-        "rotation": 84.5596694946289
-    },
-    {
-        "Dice": 6,
-        "pips": 4,
-        "pixel_center": {
-            "x": 670,
-            "y": 443
-        },
-        "rotation": 0.7638983726501465
-    },
-    {
-        "Dice": 7,
-        "pips": 5,
-        "pixel_center": {
-            "x": 303,
-            "y": 1160
-        },
-        "rotation": 4.763641834259033
-    },
-    {
-        "Dice": 8,
         "pips": 6,
         "pixel_center": {
-            "x": 380,
-            "y": 765
+            "x": 271,
+            "y": 1266
         },
-        "rotation": 9.462323188781738
-    },
-    {
-        "Dice": 9,
-        "pips": 6,
-        "pixel_center": {
-            "x": 205,
-            "y": 445
-        },
-        "rotation": 90.0
+        "rotation": 58.81502914428711
     }
 ]

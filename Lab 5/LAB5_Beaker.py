@@ -13,7 +13,7 @@ sys.path.append('../fanuc_ethernet_ip_drivers/src')
 from robot_controller import robot as Robot
 
 # MQTT Broker details
-BROKER_ADDRESS = "172.29.208.101"  # Replace with actual broker address
+BROKER_ADDRESS = "172.29.208.31"  # Replace with actual broker address
 TOPICA = "Beaker/status"
 TOPICB = "Bunsen/status"
 
@@ -56,7 +56,7 @@ def load_pixel_coordinates(json_file="dice_positions.json"):
 
 # Load the transformation matrix
 def load_transform_matrix(matrix_file="transform_matrix.json"):
-    os.chdir('./Lab 5')
+    # os.chdir('./Lab 5')
     with open(matrix_file, "r") as f:
         matrix = json.load(f)
     return np.array(matrix, dtype="float32")
@@ -125,16 +125,35 @@ def main():
     robot.schunk_gripper('open')
     robot.write_joint_pose(Home)
 
+    # Wait until Ready signal is received
+
+    while not Ready:
+        time.sleep(0.5)
+    print("Ready!")
+
     # Step 1: Run Image Capture and Coordinates Detection for Section 1
     run_image_capture()
+    os.chdir("/home/funkey/ME-559/College/Lab 5")
+    img = cv.imread('dice.png')
+    mask = np.zeros(img.shape[:2], np.uint8)
+    center = (1200, 0)  # Center of the image
+    radius = 2000  # Set radius as a quarter of the image's smaller dimension
+    cv.circle(mask, center, radius, 255, -1)
+    masked_img = cv.bitwise_and(img, img, mask=mask)
+    mask = np.zeros(masked_img.shape[:2], np.uint8)
+    x1, y1 = 100, 1880  # Top-left corner
+    x2, y2 = 300, 3000  # Bottom-right corner
+    cv.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+
+    # Apply the mask to the image using bitwise AND
+    masked_image = cv.bitwise_and(masked_img, masked_img, mask=mask)
+
+    # Save the masked image
+    cv.imwrite('dice_circle_masked.png', masked_image)
+    print("Mask Done")
     run_image_coords()
     print("Image Done!")
     publish_status("Ready")
-
-    # Wait until Ready signal is received
-    while not Ready:
-        time.sleep(0.25)
-    print("Ready!")
 
 
     # Load pixel coordinates and transformation matrix
@@ -170,12 +189,29 @@ def main():
     while Standby and not Complete:
         robot.write_joint_pose(Home)
         time.sleep(1)
-        
+        Second = True
 
     # Step 3: Process Section 2 if "complete" or continue with even dice
     if Second:
         print("Processing Section 2!")
         run_image_capture()
+        os.chdir("/home/funkey/ME-559/College/Lab 5")
+        img = cv.imread('dice.png')
+        mask = np.zeros(img.shape[:2], np.uint8)
+        center = (1200, 0)  # Center of the image
+        radius = 2000  # Set radius as a quarter of the image's smaller dimension
+        cv.circle(mask, center, radius, 255, -1)
+        masked_img = cv.bitwise_and(img, img, mask=mask)
+        mask = np.zeros(masked_img.shape[:2], np.uint8)
+        # x1, y1 = 100, 100  # Top-left corner
+        # x2, y2 = 300, 300  # Bottom-right corner
+        cv.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+
+        # Apply the mask to the image using bitwise AND
+        masked_image = cv.bitwise_and(masked_img, masked_img, mask=mask)
+
+        # Save the masked image
+        cv.imwrite('dice_circle_masked.png', masked_image)
         run_image_coords()
         
         # Process Section 2 Dice
@@ -195,9 +231,10 @@ def main():
         stack_dice(robot, section_2_robot_coords)
     
     # Final status update after both sections
-    if not Standby and not Second:
+    if not Standby and Second:
         print("Finalizing Section 2 with even dice")
         # Publish final "Complete" after both sections are processed
+        robot.write_joint_pose(Home)
         publish_status("Complete")
         Complete = True
     else:
