@@ -136,14 +136,14 @@ def main():
     os.chdir("/home/funkey/ME-559/College/Lab 5")
     img = cv.imread('dice.png')
     mask = np.zeros(img.shape[:2], np.uint8)
-    center = (1200, 0)  # Center of the image
-    radius = 2000  # Set radius as a quarter of the image's smaller dimension
+    center = (1400, 20)  # Center of the image
+    radius = 1800  # Set radius as a quarter of the image's smaller dimension
     cv.circle(mask, center, radius, 255, -1)
     masked_img = cv.bitwise_and(img, img, mask=mask)
-    mask = np.zeros(masked_img.shape[:2], np.uint8)
-    x1, y1 = 100, 1880  # Top-left corner
-    x2, y2 = 300, 3000  # Bottom-right corner
-    cv.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+    # mask = np.zeros(masked_img.shape[:2], np.uint8)
+    # x1, y1 = 100, 1880  # Top-left corner
+    # x2, y2 = 300, 3000  # Bottom-right corner
+    # cv.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
 
     # Apply the mask to the image using bitwise AND
     masked_image = cv.bitwise_and(masked_img, masked_img, mask=mask)
@@ -199,13 +199,13 @@ def main():
         img = cv.imread('dice.png')
         mask = np.zeros(img.shape[:2], np.uint8)
         center = (1200, 0)  # Center of the image
-        radius = 2000  # Set radius as a quarter of the image's smaller dimension
+        radius = 1800  # Set radius as a quarter of the image's smaller dimension
         cv.circle(mask, center, radius, 255, -1)
-        masked_img = cv.bitwise_and(img, img, mask=mask)
-        mask = np.zeros(masked_img.shape[:2], np.uint8)
-        # x1, y1 = 100, 100  # Top-left corner
-        # x2, y2 = 300, 300  # Bottom-right corner
-        cv.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+        # masked_img = cv.bitwise_and(img, img, mask=mask)
+        # mask = np.zeros(masked_img.shape[:2], np.uint8)
+        # # x1, y1 = 100, 100  # Top-left corner
+        # # x2, y2 = 300, 300  # Bottom-right corner
+        # cv.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
 
         # Apply the mask to the image using bitwise AND
         masked_image = cv.bitwise_and(masked_img, masked_img, mask=mask)
