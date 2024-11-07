@@ -14,7 +14,7 @@ from robot_controller import robot as Robot
 robot_ip = '172.29.208.123'  # Beaker
 robot = Robot(robot_ip)
 Home = [0, 0, 0, 0, -90, 0.0]
-Die = [468, -5, -185, -179.9, 0.0, 0.0]
+Die = [468, -5, -205, -179.9, 0.0, 0.0]
 z1 = -38.0
 z11 = -146.0
 
@@ -91,24 +91,24 @@ def main():
         robot.onRobot_gripper(120,40,False)
         robot.write_cartesian_position([468, -5, z1, -179.9, 0.0, 0.0])
 
-        robot.write_cartesian_position([468+40, -5, -185, -179.9, 0.0, 0.0])
+        robot.write_cartesian_position([468+40, -5, -205, -179.9, 0.0, 0.0])
         robot.onRobot_gripper(65,40,False)
         time.sleep(2)
         robot.onRobot_gripper(120,40,False)
         time.sleep(2)
-        robot.write_cartesian_position([468-40, -5, -185, -179.9, 0.0, 0.0])
+        robot.write_cartesian_position([468-40, -5, -205, -179.9, 0.0, 0.0])
         robot.onRobot_gripper(65,40,False)
         time.sleep(2)
         robot.onRobot_gripper(120,40,False)
         time.sleep(2)
         robot.write_cartesian_position([468, -5, z1, -179.9, 0.0, 0.0+90.0])
 
-        robot.write_cartesian_position([468, -5-40, -185, -179.9, 0.0, 0.0+90])
+        robot.write_cartesian_position([468, -5-40, -205, -179.9, 0.0, 0.0+90])
         robot.onRobot_gripper(65,40,False)
         time.sleep(2)
         robot.onRobot_gripper(120,40,False)
         time.sleep(2)
-        robot.write_cartesian_position([468, -5+40, -185, -179.9, 0.0, 0.0+90])
+        robot.write_cartesian_position([468, -5+40, -205, -179.9, 0.0, 0.0+90])
         robot.onRobot_gripper(65,40,False)
         time.sleep(2)
         robot.onRobot_gripper(120,40,False)
