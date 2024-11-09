@@ -70,11 +70,6 @@ def transform_pixel_to_robot(pixel_coord, homography_matrix):
     transformed_coord = cv.perspectiveTransform(pixel_np, homography_matrix)
     return transformed_coord[0][0]
 
-# Filter dice based on section
-def filter_dice_by_section(dice_data, section_bounds):
-    x_min, y_min, x_max, y_max = section_bounds
-    return [die for die in dice_data if 0 <= die["pixel_center"]["x"] and 0 <= die["pixel_center"]["y"]]
-
 # Move robot to stack dice at specified location, accounting for rotation
 def stack_dice(robot, dice_robot_coords, start_z=-30):
     global O, Second
@@ -89,7 +84,7 @@ def stack_dice(robot, dice_robot_coords, start_z=-30):
         rotation = die["rotation"]
         
         if y <= 1135:
-            print(f"{O} Moving to dice position at ({x}, {y}, {start_z}) with rotation {rotation}")
+            print(f"Moving Dice: {i} to dice position at ({x}, {y}, {start_z}) with rotation {rotation}")
             try:
                 robot.write_cartesian_position([x, y, start_z, -179.9, 0.0, rotation+30.0])
                 robot.write_cartesian_position([x, y, -125,  -179.9, 0.0, rotation+30.0])
@@ -141,8 +136,8 @@ def main():
 
     # Wait until Ready signal is received
 
-    # while not Ready:
-    #     time.sleep(0.5)
+    while not Ready:
+        time.sleep(0.5)
     print("Ready!")
 
     # Step 1: Run Image Capture and Coordinates Detection for Section 1
@@ -177,9 +172,6 @@ def main():
     homography_matrix = load_transform_matrix("transform_matrix.json")
     print("Matrix Done!")
 
-    # Process Section 1 Dice
-    # section_1_bounds = (0, 0, 1600, 1425)  # Define section bounds for section 1
-    # section_1_dice = filter_dice_by_section(pixel_data, section_1_bounds)
     
     section_1_robot_coords = []
     for die in pixel_data:
@@ -226,8 +218,6 @@ def main():
         
         # Process Section 2 Dice
         pixel_data = load_pixel_coordinates("dice_positions.json")
-        # section_2_bounds = (0, 0, 1600, 3340)  # Define section bounds for section 2
-        # section_2_dice = filter_dice_by_section(pixel_data, section_2_bounds)
         
         # Prepare robot coordinates for Section 2 dice stacking
         section_2_robot_coords = []
