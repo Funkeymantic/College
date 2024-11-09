@@ -13,7 +13,8 @@ sys.path.append('../fanuc_ethernet_ip_drivers/src')
 from robot_controller import robot as Robot
 
 # MQTT Broker details
-BROKER_ADDRESS = "172.29.208.31"  # Replace with actual broker address
+# BROKER_ADDRESS = "172.29.208.31"
+BROKER_ADDRESS = "localhost"
 TOPICA = "Beaker/status"
 TOPICB = "Bunsen/status"
 
@@ -33,6 +34,7 @@ Standby = False
 Complete = False
 Ready = False
 Second = False
+O = 0
 
 # Publish messages to MQTT
 def publish_status(status):
@@ -63,45 +65,57 @@ def load_transform_matrix(matrix_file="transform_matrix.json"):
 
 # Transform pixel coordinates to robot coordinates
 def transform_pixel_to_robot(pixel_coord, homography_matrix):
-    pixel_np = np.array([[pixel_coord]], dtype="float32")
+    # Convert pixel coordinates to the appropriate shape
+    pixel_np = np.array([[[pixel_coord['x'], pixel_coord['y']]]], dtype="float32")
     transformed_coord = cv.perspectiveTransform(pixel_np, homography_matrix)
     return transformed_coord[0][0]
 
 # Filter dice based on section
 def filter_dice_by_section(dice_data, section_bounds):
     x_min, y_min, x_max, y_max = section_bounds
-    return [die for die in dice_data if x_min <= die["pixel_center"]["x"] <= x_max and y_min <= die["pixel_center"]["y"] <= y_max]
+    return [die for die in dice_data if 0 <= die["pixel_center"]["x"] and 0 <= die["pixel_center"]["y"]]
 
 # Move robot to stack dice at specified location, accounting for rotation
 def stack_dice(robot, dice_robot_coords, start_z=-30):
+    global O, Second
+    
+    Offset = 0
+    if Second == False:
+        Offset = 80
+    else:
+        Offset = -80
     for i, die in enumerate(dice_robot_coords):
         x, y = die['robot_position']['x'], die['robot_position']['y']
         rotation = die["rotation"]
         
-        print(f"Moving to dice position at ({x}, {y}, {start_z}) with rotation {rotation}")
-        try:
-            robot.write_cartesian_position([x, y, start_z, -179.9, 0.0, rotation+30.0])
-            robot.write_cartesian_position([x, y, -125,  -179.9, 0.0, rotation+30.0])
-            
-            print("Position reached. Closing gripper.")
-            robot.schunk_gripper("close")
-            print("Dice picked up.")
-            time.sleep(.1)
-            robot.write_cartesian_position([x, y, start_z,  -179.9, 0.0, rotation+30.0])
-            robot.write_cartesian_position([Stack_Position[0], Stack_Position[1]+100, -185+80*9,  -179.9, 0.0, rotation+30.0])
-            
-            # Move to stacking position with height adjustment for each dice
-            target_z = -185 + i * dice_size
-            print(f"Moving to stack position at ({Stack_Position[0]}, {Stack_Position[1]}, {target_z})")
-            robot.write_cartesian_position([Stack_Position[0], Stack_Position[1], target_z, Stack_Position[3], Stack_Position[4], Stack_Position[5]])
-            robot.schunk_gripper("open")
-            print("Dice placed in stack.")
-            time.sleep(.25)
-            robot.write_cartesian_position([Stack_Position[0], Stack_Position[1], target_z+80, Stack_Position[3], Stack_Position[4], Stack_Position[5]])
-            robot.write_cartesian_position([Stack_Position[0], Stack_Position[1]+100, -185+80*9,  -179.9, 0.0, rotation+30.0])
-        except Exception as e:
-            print(f"Error during stacking operation: {e}")
-        time.sleep(0.25)
+        if y <= 1135:
+            print(f"{O} Moving to dice position at ({x}, {y}, {start_z}) with rotation {rotation}")
+            try:
+                robot.write_cartesian_position([x, y, start_z, -179.9, 0.0, rotation+30.0])
+                robot.write_cartesian_position([x, y, -125,  -179.9, 0.0, rotation+30.0])
+                
+                print("Position reached. Closing gripper.")
+                robot.schunk_gripper("close")
+                print("Dice picked up.")
+                time.sleep(.1)
+                robot.write_cartesian_position([x, y, start_z,  -179.9, 0.0, rotation+30.0])
+                robot.write_cartesian_position([Stack_Position[0]+Offset, Stack_Position[1]+100, -185+80*9,  -179.9, 0.0, rotation+30.0])
+                
+                # Move to stacking position with height adjustment for each dice
+                target_z = -185 + O * dice_size
+                print(f"Moving to stack position at ({Stack_Position[0]}, {Stack_Position[1]}, {target_z})")
+                robot.write_cartesian_position([Stack_Position[0], Stack_Position[1], target_z, Stack_Position[3], Stack_Position[4], Stack_Position[5]])
+                robot.schunk_gripper("open")
+                print(f"Dice placed in stack.")
+                time.sleep(.25)
+                robot.write_cartesian_position([Stack_Position[0], Stack_Position[1], target_z+80, Stack_Position[3], Stack_Position[4], Stack_Position[5]])
+                robot.write_cartesian_position([Stack_Position[0], Stack_Position[1]+100, -185+80*9,  -179.9, 0.0, rotation+30.0])
+                O += 1
+            except Exception as e:
+                print(f"Error during stacking operation: {e}")
+            time.sleep(0.25)
+        else:
+            print(f'Bunsen can grab Dice {i}')
 
 
 # Callback for MQTT message reception
@@ -127,8 +141,8 @@ def main():
 
     # Wait until Ready signal is received
 
-    while not Ready:
-        time.sleep(0.5)
+    # while not Ready:
+    #     time.sleep(0.5)
     print("Ready!")
 
     # Step 1: Run Image Capture and Coordinates Detection for Section 1
@@ -136,24 +150,26 @@ def main():
     os.chdir("/home/funkey/ME-559/College/Lab 5")
     img = cv.imread('dice.png')
     mask = np.zeros(img.shape[:2], np.uint8)
-    center = (1400, 20)  # Center of the image
+    center = (1400, 80)  # Center of the image
     radius = 1800  # Set radius as a quarter of the image's smaller dimension
     cv.circle(mask, center, radius, 255, -1)
     masked_img = cv.bitwise_and(img, img, mask=mask)
-    # mask = np.zeros(masked_img.shape[:2], np.uint8)
-    # x1, y1 = 100, 1880  # Top-left corner
-    # x2, y2 = 300, 3000  # Bottom-right corner
-    # cv.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+    mask = np.zeros(masked_img.shape[:2], np.uint8)
+    x1, y1 = 900, 0  # Top-left corner
+    x2, y2 = 3000, 1640  # Bottom-right corner
+    cv.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
 
     # Apply the mask to the image using bitwise AND
     masked_image = cv.bitwise_and(masked_img, masked_img, mask=mask)
 
     # Save the masked image
-    cv.imwrite('dice_circle_masked.png', masked_image)
+    cv.imwrite('Dice_Masked.png', masked_image)
     print("Mask Done")
     run_image_coords()
     print("Image Done!")
     publish_status("Ready")
+
+    time.sleep(5)
 
 
     # Load pixel coordinates and transformation matrix
@@ -162,18 +178,16 @@ def main():
     print("Matrix Done!")
 
     # Process Section 1 Dice
-    section_1_bounds = (0, 0, 1600, 1425)  # Define section bounds for section 1
-    section_1_dice = filter_dice_by_section(pixel_data, section_1_bounds)
+    # section_1_bounds = (0, 0, 1600, 1425)  # Define section bounds for section 1
+    # section_1_dice = filter_dice_by_section(pixel_data, section_1_bounds)
     
     section_1_robot_coords = []
-    for die in section_1_dice:
-        # Extract x and y coordinates as a list
-        pixel_coord = [die["pixel_center"]["x"], die["pixel_center"]["y"]]
-        robot_position = transform_pixel_to_robot(pixel_coord, homography_matrix)
-        section_1_robot_coords.append({
-            "robot_position": {"x": robot_position[0], "y": robot_position[1]},
-            "rotation": die["rotation"]
-        })
+    for die in pixel_data:
+            robot_position = transform_pixel_to_robot(die["pixel_center"], homography_matrix)
+            section_1_robot_coords.append({
+                "robot_position": {"x": robot_position[0], "y": robot_position[1]},
+                "rotation": die["rotation"]
+            })
 
 
     print("Begin Collecting dice from Section 1!")
@@ -198,30 +212,27 @@ def main():
         os.chdir("/home/funkey/ME-559/College/Lab 5")
         img = cv.imread('dice.png')
         mask = np.zeros(img.shape[:2], np.uint8)
-        center = (1200, 0)  # Center of the image
-        radius = 1800  # Set radius as a quarter of the image's smaller dimension
-        cv.circle(mask, center, radius, 255, -1)
-        # masked_img = cv.bitwise_and(img, img, mask=mask)
-        # mask = np.zeros(masked_img.shape[:2], np.uint8)
-        # # x1, y1 = 100, 100  # Top-left corner
-        # # x2, y2 = 300, 300  # Bottom-right corner
-        # cv.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+        x1, y1 = 900, 0  # Top-left corner
+        x2, y2 = 3000, 2000  # Bottom-right corner
+        cv.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
 
         # Apply the mask to the image using bitwise AND
-        masked_image = cv.bitwise_and(masked_img, masked_img, mask=mask)
+        masked_image = cv.bitwise_and(img, img, mask=mask)
 
         # Save the masked image
-        cv.imwrite('dice_circle_masked.png', masked_image)
+        cv.imwrite('Dice_Masked.png', masked_image)
+        print("Mask Done")
         run_image_coords()
         
         # Process Section 2 Dice
         pixel_data = load_pixel_coordinates("dice_positions.json")
-        section_2_bounds = (0, 1425, 1600, 1950)  # Define section bounds for section 2
-        section_2_dice = filter_dice_by_section(pixel_data, section_2_bounds)
+        # section_2_bounds = (0, 0, 1600, 3340)  # Define section bounds for section 2
+        # section_2_dice = filter_dice_by_section(pixel_data, section_2_bounds)
         
         # Prepare robot coordinates for Section 2 dice stacking
         section_2_robot_coords = []
-        for die in section_2_dice:
+        print(pixel_data)
+        for die in pixel_data:
             robot_position = transform_pixel_to_robot(die["pixel_center"], homography_matrix)
             section_2_robot_coords.append({
                 "robot_position": {"x": robot_position[0], "y": robot_position[1]},

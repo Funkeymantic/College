@@ -5,7 +5,7 @@ import os
 
 # Define the base directory and paths
 BASE_DIR = "/home/funkey/ME-559/College/Lab 5"  # Adjust if needed
-image_path = os.path.join(BASE_DIR, 'dice.png')
+image_path = os.path.join(BASE_DIR, 'Dice_Masked.png')
 output_json_path = "/home/funkey/ME-559/College/Lab 5/dice_positions.json"
 
 
