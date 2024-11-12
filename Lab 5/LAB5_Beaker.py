@@ -13,8 +13,8 @@ sys.path.append('../fanuc_ethernet_ip_drivers/src')
 from robot_controller import robot as Robot
 
 # MQTT Broker details
-# BROKER_ADDRESS = "172.29.208.31"
-BROKER_ADDRESS = "localhost"
+BROKER_ADDRESS = "172.29.208.31"
+# BROKER_ADDRESS = "localhost"
 TOPICA = "Beaker/status"
 TOPICB = "Bunsen/status"
 
@@ -195,6 +195,10 @@ def main():
     while Standby and not Complete:
         robot.write_joint_pose(Home)
         time.sleep(1)
+        Second = True
+
+    if Standby and Complete:
+        robot.write_joint_pose(Home)
         Second = True
 
     # Step 3: Process Section 2 if "complete" or continue with even dice

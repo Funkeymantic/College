@@ -89,6 +89,15 @@ def main():
     robot.write_joint_pose(Home)
     for i, (dice, dice_high) in enumerate(dice_positions, start=1):
         robot.schunk_gripper('open')
+        robot.write_cartesian_position([700, -5, -185+80*(10-i+1), -179.9, 0.0, 30.0])
+        robot.write_cartesian_position([700, -5, -185+80*(10-i), -179.9, 0.0, 30.0])
+        robot.schunk_gripper('close')
+        time.sleep(0.25)
+        robot.write_cartesian_position([700, -5, -185+80*(10-i+1), -179.9, 0.0, 30.0])
+        robot.write_cartesian_position([468, -5, -185+80*(10-i+1), -179.9, 0.0, 30.0])
+        robot.write_cartesian_position([468+40, -5, -185, -179.9, 0.0, 30.0])
+        robot.schunk_gripper('open')
+        time.sleep(0.25)
         robot.write_cartesian_position([468, -5, z1, -179.9, 0.0, 30.0])
 
         robot.write_cartesian_position([468+40, -5, -185, -179.9, 0.0, 30.0])
@@ -146,8 +155,34 @@ def main():
     print(f"Image: {pixel_coords}")
     print(f"Beaker: {dice_beaker_cords}")
 
+    New_Beaker_Coords = {}
+
+    for i, coord1 in enumerate(pixel_coords):
+        print(f'\nCoordinate {i+1} in Pixel Array: {coord1}')
+        print("Avaliable coordinates in Beaker Array:")
+
+        # Print all coordinates in Beaker Array with an index
+        for j, coord2 in enumerate(dice_beaker_cords):
+            print(f" {j + 1}: {coord2}")
+
+        # Ask the user for input
+        choice = int(input(f"Select the index of the matching coordinates in the Pixel Array for {coord1}: ")) - 1
+
+        # Store the match in the dictionary
+        if 0<= choice < len(dice_beaker_cords):
+            New_Beaker_Coords[coord1] = dice_beaker_cords[choice]
+            print(f"Matched {coord1} with {pixel_coords[choice]}")
+        else:
+            print("Invalid choice. Please try again.")
+    
+    # Print final Beaker Coords
+    print("\nFinal matches:")
+    for key, value in New_Beaker_Coords.items():
+        print(f"{key} -> {value}")
+
+
     # Perform homography calibration
-    homography_matrix = calibrate_transform(pixel_coords, dice_beaker_cords)
+    homography_matrix = calibrate_transform(pixel_coords, New_Beaker_Coords)
     print(homography_matrix)
 
     # # Example usage of the transformation matrix
