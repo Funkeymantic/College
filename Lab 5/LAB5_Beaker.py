@@ -158,7 +158,7 @@ def main():
     masked_image = cv.bitwise_and(masked_img, masked_img, mask=mask)
 
     # Save the masked image
-    cv.imwrite('Dice_Masked.png', masked_image)
+    cv.imwrite('dice.png', masked_image)
     print("Mask Done")
     run_image_coords()
     print("Image Done!")
@@ -191,14 +191,14 @@ def main():
         publish_status("Standby")
         Second = True
     
+    robot.write_joint_pose(Home)
+
     # Wait until we get a 'Complete' or proceed directly if Standby is False
     while Standby and not Complete:
-        robot.write_joint_pose(Home)
         time.sleep(1)
         Second = True
 
     if Standby and Complete:
-        robot.write_joint_pose(Home)
         Second = True
 
     # Step 3: Process Section 2 if "complete" or continue with even dice
@@ -216,7 +216,7 @@ def main():
         masked_image = cv.bitwise_and(img, img, mask=mask)
 
         # Save the masked image
-        cv.imwrite('Dice_Masked.png', masked_image)
+        cv.imwrite('dice.png', masked_image)
         print("Mask Done")
         run_image_coords()
         

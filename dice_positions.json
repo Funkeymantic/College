@@ -3,81 +3,81 @@
         "Dice": 1,
         "pips": 1,
         "pixel_center": {
-            "x": 1142,
-            "y": 1202
+            "x": 1130,
+            "y": 1195
         },
-        "rotation": -0.0
+        "rotation": 90.0
     },
     {
         "Dice": 2,
         "pips": 1,
         "pixel_center": {
-            "x": 1141,
-            "y": 812
+            "x": 207,
+            "y": 397
         },
-        "rotation": -0.0
+        "rotation": 90.0
     },
     {
         "Dice": 3,
         "pips": 2,
         "pixel_center": {
-            "x": 1142,
-            "y": 420
+            "x": 669,
+            "y": 797
         },
-        "rotation": 0.4982115924358368
+        "rotation": 89.51030731201172
     },
     {
         "Dice": 4,
         "pips": 2,
         "pixel_center": {
-            "x": 678,
-            "y": 1204
+            "x": 662,
+            "y": 1190
         },
-        "rotation": 0.48969557881355286
+        "rotation": 0.0
     },
     {
         "Dice": 5,
         "pips": 3,
         "pixel_center": {
-            "x": 678,
-            "y": 812
+            "x": 1132,
+            "y": 803
         },
-        "rotation": 90.0
+        "rotation": 89.24615478515625
     },
     {
         "Dice": 6,
-        "pips": 4,
+        "pips": 3,
         "pixel_center": {
-            "x": 679,
-            "y": 418
+            "x": 202,
+            "y": 796
         },
-        "rotation": 90.0
+        "rotation": 89.06844329833984
     },
     {
         "Dice": 7,
         "pips": 5,
         "pixel_center": {
-            "x": 212,
-            "y": 1205
+            "x": 1135,
+            "y": 408
         },
-        "rotation": -0.0
+        "rotation": 0.0
     },
     {
         "Dice": 8,
         "pips": 6,
         "pixel_center": {
-            "x": 214,
-            "y": 814
+            "x": 671,
+            "y": 401
         },
-        "rotation": 90.0
+        "rotation": 0.49391689896583557
     },
     {
         "Dice": 9,
         "pips": 6,
         "pixel_center": {
-            "x": 213,
-            "y": 416
+            "x": 197,
+            "y": 1189
         },
-        "rotation": 0.0
+        "rotation": 90.0
     }
 ]
