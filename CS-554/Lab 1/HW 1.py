@@ -28,7 +28,9 @@ try:
         print("Robot moved to specified cartesian coordinates.")
 
         # 1.2 Move the robot using joint coordinates
-        joint_positions = [0.0, -1.57, 1.57, 0.0, 0.0, 0.0]  # Example joint values in radians
+        joint_positions = models.JointPositions(
+            joints=[0.0, -1.57, 1.57, 0.0, 0.0, 0.0]  # Replace with actual joint values for your robot
+        )
         sdk.movement.joints.move(joint_positions).ok()
         print("Robot moved to specified joint positions.")
 
